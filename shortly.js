@@ -3,14 +3,14 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 
-
+var session = require('express-session');
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
-
+var bcrypt = require('bcrypt-nodejs');
 var app = express();
 var authenticated = false;
 
@@ -22,14 +22,45 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+app.use(session({
+  secret: '123',
+  resave: true,
+  saveUninitalized: true,
+}));
 
 app.post('/login', function(req, res){
   //console.log(Users.fetch());
-  authenticated = true;
+  // console.log(req.body.password)
+  new User({'name': req.body.username}).fetch().then(function(found){
+    if (found){
+      console.log(found.attributes.password)
+      console.log(found.attributes)
+      bcrypt.compare(req.body.password, found.attributes.password, function(err, match) {
+        if(match) {
+        console.log('hashing passwords match')
+        req.session.access = true;
+        res.render('index');
+        } else {
+        res.render('login')
+        console.log('fuck off intruder');
+        
+        // Passwords don't match
+        } 
+      });
+    } else {
+      
+      res.render('login')
+      console.log('not found')
+      
+      //console.log('found user')
+    }
+  })
+  
+  //authenticated = true;
   //check to see if hashed password === users password
 
-  res.render('index');
-  res.end();
+  // res.render('index');
+  // res.end();
 })
 
 
@@ -71,15 +102,19 @@ function(req, res) {
 
 
 
-const isAuthenticated = function(err, res, next){
-  if (!authenticated) {
-    //console.log('fuckkkkkkkkk')
-    res.status(401).render('login');
-    
-  } else {
+const isAuthenticated = function(req, res, next){
+  if (req.session.access) {
     next();
+  } else {
+    res.status(401).render('login');
   }
 };
+
+app.get('/logout', function(req, res){
+  req.session.destroy();
+  res.render('login');
+  res.end();
+})
 
 app.use(isAuthenticated);
 

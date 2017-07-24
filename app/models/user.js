@@ -1,7 +1,7 @@
 var db = require('../config');
 var bcrypt = require('bcrypt-nodejs');
 var Promise = require('bluebird');
-const saltRounds = 10;
+const saltRounds = 10;  
 var User = db.Model.extend({
   tableName : 'users',
   initialize: function() {
