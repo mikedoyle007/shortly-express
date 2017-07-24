@@ -12,6 +12,7 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 
 var app = express();
+var authenticated = false;
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -22,11 +23,66 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+app.post('/login', function(req, res){
+  //console.log(Users.fetch());
+  authenticated = true;
+  //check to see if hashed password === users password
+
+  res.render('index');
+  res.end();
+})
+
+
+app.get('/signup', 
+function(req,res){
+  res.render('signup');
+  res.end();
+});
+
+app.post('/signup',
+function(req,res){
+  new User ({'name': req.body.username}).fetch().then(function(found){
+    if (found){
+      console.log('failure')
+      res.render('signup')
+      res.end();
+    }
+    else {
+
+      Users.create({
+          name: req.body.username,
+          //hash the password
+          password: req.body.password
+        })
+        .then(function(newUser) {
+          res.status(200);
+          res.render('login');
+        });
+
+      console.log('created user');
+    }
+  })
+})
 
 app.get('/', 
 function(req, res) {
   res.render('index');
 });
+
+
+
+const isAuthenticated = function(err, res, next){
+  if (!authenticated) {
+    //console.log('fuckkkkkkkkk')
+    res.status(401).render('login');
+    
+  } else {
+    next();
+  }
+};
+
+app.use(isAuthenticated);
+
 
 app.get('/create', 
 function(req, res) {
